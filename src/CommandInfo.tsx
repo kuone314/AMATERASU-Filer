@@ -115,7 +115,7 @@ function decoratePath(path: String): string {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 export interface CommandExecuterFunc {
-  execShellCommand:  (
+  execShellCommand: (
     command_name: string,
     current_dir: string,
     selecting_item_name_ary: string[],
