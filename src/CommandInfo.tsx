@@ -315,7 +315,11 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
     </div>
   }
 
-  const element = <dialog
+  const functions = {
+    execShellCommand: execShellCommand,
+  };
+
+  return <dialog
     css={css({
       background: theme.baseColor.backgroundColor,
       color: theme.baseColor.stringDefaultColor,
@@ -346,12 +350,6 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
       {button()}
     </div>
   </dialog>
-
-  const functions = {
-    execShellCommand: execShellCommand,
-  };
-
-  return element;
 });
 
 
