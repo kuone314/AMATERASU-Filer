@@ -10,7 +10,6 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import React from 'react';
 
 import { GenerateDefaultSeting } from './DefaultCommandSettins';
-import { sleep } from './Utility';
 import { ISettingInfo, readSettings, writeSettings } from './ReadWriteSettings';
 import { LogInfo } from './LogMessagePane';
 import { v4 as uuidv4 } from 'uuid'
@@ -139,10 +138,7 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
   const dlgOnOk = useRef<(dlgInput: string) => void>(() => { });
 
   useEffect(() => {
-    (async () => {
-      await sleep(300);// この処理が無いと、何故か、ダイアログの文字列に、空行が入る…。
     textarea.current?.focus()
-    })()
   }, [dlg.current?.open]);
 
   const theme = useTheme();
