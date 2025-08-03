@@ -141,13 +141,11 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
   useEffect(() => {
     (async () => {
       await sleep(300);// この処理が無いと、何故か、ダイアログの文字列に、空行が入る…。
-      textarea.current?.focus()
+    textarea.current?.focus()
     })()
   }, [dlg.current?.open]);
 
   const theme = useTheme();
-  const buttonStyle = ButtonStyle(theme.baseColor);
-  const textInputStyle = TextInputStyle(theme.baseColor);
 
   const execShellCommandImpl = async (
     command_name: string,
@@ -234,86 +232,7 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
     }
   }
 
-  const countTextRows = (str: string) => {
-    return str.split('\n').length;
-  }
-
   const textarea = React.createRef<HTMLTextAreaElement>();
-
-  const sizeHalf =
-    css({
-      height: '100%',
-      width: '50%',
-    });
-
-  const textAreaWhithRef = () => {
-    return <div
-      css={css({
-        display: 'flex',
-        flexDirection: 'row',
-      })}
-    >
-      <textarea
-        style={textInputStyle}
-        value={refString}
-        disabled={true}
-        rows={countTextRows(refString)}
-        css={sizeHalf}
-      />
-      <textarea
-        style={textInputStyle}
-        value={dlgString}
-        onChange={e => {
-          setDlgString(e.target.value);
-        }}
-        rows={countTextRows(refString)}
-        css={sizeHalf}
-        ref={textarea}
-      />
-    </div>
-  }
-  const textArea = () => {
-    return <div
-      css={css({
-        display: 'grid',
-        gridTemplateRows: '1fr',
-      })}
-    >
-      <textarea
-        style={textInputStyle}
-        css={css({
-          display: 'grid',
-          gridTemplateRows: '1fr',
-        })}
-        value={dlgString}
-        onChange={e => {
-          setDlgString(e.target.value);
-        }}
-        ref={textarea}
-      />
-    </div>
-  }
-  const button = () => {
-    return <div
-      css={css({
-        marginLeft: 'auto',
-        marginRight: 'auto',
-      })}
-    >
-      <button
-        css={buttonStyle}
-        onClick={() => { dlgOnOk.current(dlgString); dlg.current?.close() }}
-      >
-        Ok
-      </button>
-      <button
-        css={buttonStyle}
-        onClick={() => { setDlgString(''); dlg.current?.close() }}
-      >
-        Cancle
-      </button>
-    </div>
-  }
 
   const functions = {
     execShellCommand: execShellCommand,
@@ -346,10 +265,131 @@ export const CommandExecuter = forwardRef<CommandExecuterFunc, CommandExecuterPr
       >
         {title}
       </div>
-      {(refString.length === 0) ? textArea() : textAreaWhithRef()}
-      {button()}
+      {(refString.length === 0)
+        ? <TextArea
+          dlgString={dlgString}
+          setDlgString={setDlgString}
+          textarea={textarea}
+        />
+        : <TextAreaWhithRef
+          refString={refString}
+          dlgString={dlgString}
+          setDlgString={setDlgString}
+          textarea={textarea}
+        />}
+      <Button
+        onOK={() => { dlgOnOk.current(dlgString); dlg.current?.close() }}
+        onCancel={() => { setDlgString(''); dlg.current?.close() }} />
     </div>
   </dialog>
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+const countTextRows = (str: string) => {
+  return str.split('\n').length;
+}
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+const TextAreaWhithRef = (
+  props: {
+    refString: string,
+    dlgString: string,
+    setDlgString: (str: string) => void,
+    textarea: React.RefObject<HTMLTextAreaElement>,
+  }
+) => {
+  const theme = useTheme();
+  const textInputStyle = TextInputStyle(theme.baseColor);
+
+  const sizeHalf =
+    css({
+      height: '100%',
+      width: '50%',
+    });
+
+  return <div
+    css={css({
+      display: 'flex',
+      flexDirection: 'row',
+    })}
+  >
+    <textarea
+      style={textInputStyle}
+      value={props.refString}
+      disabled={true}
+      rows={countTextRows(props.refString)}
+      css={sizeHalf}
+    />
+    <textarea
+      style={textInputStyle}
+      value={props.dlgString}
+      onChange={e => {
+        props.setDlgString(e.target.value);
+      }}
+      rows={countTextRows(props.refString)}
+      css={sizeHalf}
+      ref={props.textarea}
+    />
+  </div>
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+const TextArea = (
+  props: {
+    dlgString: string,
+    setDlgString: (str: string) => void,
+    textarea: React.RefObject<HTMLTextAreaElement>,
+  }
+) => {
+  const theme = useTheme();
+  const textInputStyle = TextInputStyle(theme.baseColor);
+
+  return <div
+    css={css({
+      display: 'grid',
+      gridTemplateRows: '1fr',
+    })}
+  >
+    <textarea
+      style={textInputStyle}
+      css={css({
+        display: 'grid',
+        gridTemplateRows: '1fr',
+      })}
+      value={props.dlgString}
+      onChange={e => {
+        props.setDlgString(e.target.value);
+      }}
+      ref={props.textarea}
+    />
+  </div>
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+const Button = (props: {
+  onOK: () => void,
+  onCancel: () => void,
+}) => {
+  const theme = useTheme();
+  const buttonStyle = ButtonStyle(theme.baseColor);
+
+  return <div
+    css={css({
+      marginLeft: 'auto',
+      marginRight: 'auto',
+    })}
+  >
+    <button
+      css={buttonStyle}
+      onClick={props.onOK}
+    >
+      Ok
+    </button>
+    <button
+      css={buttonStyle}
+      onClick={props.onCancel}
+    >
+      Cancle
+    </button>
+  </div>
+}
