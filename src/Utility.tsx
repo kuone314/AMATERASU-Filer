@@ -30,11 +30,6 @@ export function Sequence(stt: number, size: number): number[] {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 export function DirName(dirPath: string): string {
   // ライブラリを使いたいが、良い感じで使える物が見当たらない…。
   const splited = ApplySeparator(dirPath, '/').split('/').reverse();

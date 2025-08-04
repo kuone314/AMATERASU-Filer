@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
 import React from 'react';
@@ -119,16 +119,6 @@ export const MainPanel = (
     })()
   }, []);
 
-  const [isMenuOpen, setMenuOpen] = useState(false);
-  const [srcKey, setSrcKey] = useState<React.KeyboardEvent<HTMLDivElement> | null>(null);
-  useEffect(() => {
-    if (!isMenuOpen) {
-      if (focusToListOnContextMenuClosed) {
-        myGrid?.current?.focus();
-      }
-    }
-  }, [isMenuOpen])
-  const menuItemAry = useRef<KeyBindSetting[]>([]);
   const [focusToListOnContextMenuClosed, setFocusToListOnContextMenuClosed] = useState(false);
 
   const [contextMenuInfoAry, setContextMenuInfoAry] = useState<ContextMenuInfo[]>([]);
@@ -140,17 +130,31 @@ export const MainPanel = (
     })()
   }, []);
 
-  const [isContextMenuOpen, setContextMenuOpen] = useState(false);
-  const [contextMenuPosX, setContextMenuPosX] = useState(0);
-  const [contextMenuPosY, setContextMenuPosY] = useState(0);
+  const ContextMenuFunc = useRef<ContextMenuFunc>(null);
 
   useEffect(() => {
-    if (!isContextMenuOpen) {
+    if (!ContextMenuFunc.current?.isMenuOpen) {
       if (focusToListOnContextMenuClosed) {
         myGrid?.current?.focus();
       }
     }
-  }, [isContextMenuOpen])
+  }, [ContextMenuFunc.current?.isMenuOpen])
+
+  function openContextMenu(pos: { x: number, y: number }) {
+    ContextMenuFunc.current?.openMenu(
+      contextMenuInfoAry.map(command => ({
+        display_name: command.display_name,
+        onClick: () => commandExecuterFunc.current?.execShellCommand(
+          command.command_name,
+          props.dirPath,
+          FileListFunctions.current?.selectingItemName() ?? [],
+          props.getOppositePath(),
+          props.separator
+        )
+      })),
+      pos);
+  }
+
 
   const FileListFunctions = useRef<FileListFunc>(null);
   const addressBarFunc = useRef<AddressBarFunc>(null);
@@ -274,17 +278,19 @@ export const MainPanel = (
   }
 
   const handlekeyboardnavigation = (keyboard_event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (isMenuOpen || isContextMenuOpen) { return; }
+    if (ContextMenuFunc.current?.isMenuOpen()) { return; }
     const isFocusAddressBar = addressBarFunc.current?.isFocus() || filterBarFunc.current?.isFocus();
     const validKeyBindInfo = isFocusAddressBar
       ? keyBindInfo.filter(cmd => cmd.valid_on_addressbar)
       : keyBindInfo;
     const command_ary = validKeyBindInfo.filter(cmd => match(keyboard_event, cmd.key));
 
+    const dummyMenuPos = { x: 400, y: 1000 };
+
     if (command_ary.length !== 0) {
       if (keyboard_event.key === "ContextMenu") {
         setFocusToListOnContextMenuClosed(true);
-        setContextMenuOpen(true);
+        openContextMenu(dummyMenuPos);
       }
       keyboard_event.preventDefault();
     }
@@ -295,9 +301,12 @@ export const MainPanel = (
     }
 
     if (command_ary.length >= 2) {
-      setSrcKey(keyboard_event);
-      menuItemAry.current = command_ary;
-      setMenuOpen(true);
+      ContextMenuFunc.current?.openMenu(
+        command_ary.map(command => ({
+          display_name: command.display_name,
+          onClick: () => execCommand(command, keyboard_event),
+        })),
+        dummyMenuPos); // 適当…。
       setFocusToListOnContextMenuClosed(true);
       return;
     }
@@ -340,55 +349,6 @@ export const MainPanel = (
 
   const commandExecuterFunc = useRef<CommandExecuterFunc>(null);
 
-  const menuItemStyle = MenuitemStyle(theme.baseColor);
-
-  const commandSelectMenu = () => {
-    return <ControlledMenu
-      state={isMenuOpen ? 'open' : 'closed'}
-      onClose={() => { setMenuOpen(false); }}
-      anchorPoint={{ x: 400, y: 1000 }} // 適当…。
-    >
-      {
-        menuItemAry.current.map((command, idx) => {
-          return <MenuItem
-            css={menuItemStyle}
-            onClick={_ => execCommand(command, srcKey)}
-            key={idx}
-          >
-            {command.display_name}
-          </MenuItem>
-        })
-      }
-    </ControlledMenu>
-  }
-
-  const contextMenu = () => {
-    if (!FileListFunctions) { return <></>; }
-    return <ControlledMenu
-      state={isContextMenuOpen ? 'open' : 'closed'}
-      onClose={() => { setContextMenuOpen(false); }}
-      anchorPoint={{ x: contextMenuPosX, y: contextMenuPosY }} // 適当…。
-    >
-      {
-        contextMenuInfoAry.map((command, idx) => {
-          return <MenuItem
-            css={menuItemStyle}
-            onClick={_ => commandExecuterFunc.current?.execShellCommand(
-              command.command_name,
-              props.dirPath,
-              FileListFunctions.current?.selectingItemName() ?? [],
-              props.getOppositePath(),
-              props.separator
-            )}
-            key={idx}
-          >
-            {command.display_name}
-          </MenuItem>
-        })
-      }
-    </ControlledMenu >
-  }
-
   const nameToPath = (name: string) => (props.dirPath.length === 0)
     ? name
     : (props.dirPath + props.separator + name);
@@ -417,7 +377,9 @@ export const MainPanel = (
           height: '100%',
         })}
       >
-        {contextMenu()}
+        <ContextMenu
+          ref={ContextMenuFunc}
+        />
         <AddressBar
           dirPath={props.dirPath}
           separator={props.separator}
@@ -439,9 +401,10 @@ export const MainPanel = (
           tabIndex={0}
           ref={myGrid}
           onContextMenu={e => {
-            setContextMenuPosX(e.clientX);
-            setContextMenuPosY(e.clientY);
-            setContextMenuOpen(true);
+            openContextMenu({
+              x: e.clientX,
+              y: e.clientY
+            });
             e.preventDefault();
           }}
         >
@@ -477,7 +440,6 @@ export const MainPanel = (
         onDialogClose={() => { myGrid.current?.focus() }}
         ref={commandExecuterFunc}
       />
-      {commandSelectMenu()}
     </>
   );
 }
@@ -485,4 +447,62 @@ export const MainPanel = (
 function RemoveTrailingSeparators(path: string): string {
   return path.replace(/\\+$/, ''); // 正規化で、区切りは`\`になっている事前提。
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+type MenuItemInfo = {
+  onClick: () => void,
+  display_name: string,
+}
+interface ContextMenuFunc {
+  openMenu: (
+    menuItemList: MenuItemInfo[],
+    pos: { x: number, y: number },
+  ) => void,
+  isMenuOpen: () => boolean
+}
+type ContextMenuProps = {
+}
+const ContextMenu = forwardRef<ContextMenuFunc, ContextMenuProps>((_props, ref) => {
+  useImperativeHandle(ref, () => functions);
+
+  const theme = useTheme();
+  const menuItemStyle = MenuitemStyle(theme.baseColor);
+
+  const [menuItemList, setMenuItemList] = useState<MenuItemInfo[]>([]);
+
+  const [isContextMenuOpen, setContextMenuOpen] = useState(false);
+  const [contextMenuPosX, setContextMenuPosX] = useState(0);
+  const [contextMenuPosY, setContextMenuPosY] = useState(0);
+
+  const functions = {
+    openMenu: (
+      menuItemList: MenuItemInfo[],
+      pos: { x: number, y: number },
+    ) => {
+      setMenuItemList(menuItemList);
+      setContextMenuPosX(pos.x);
+      setContextMenuPosY(pos.y);
+      setContextMenuOpen(true);
+    },
+    isMenuOpen: () => isContextMenuOpen,
+  }
+
+  return <ControlledMenu
+    state={isContextMenuOpen ? 'open' : 'closed'}
+    onClose={() => { setContextMenuOpen(false); }}
+    anchorPoint={{ x: contextMenuPosX, y: contextMenuPosY }} // 適当…。
+  >
+    {
+      menuItemList.map((command, idx) => {
+        return <MenuItem
+          css={menuItemStyle}
+          onClick={command.onClick}
+          key={idx}
+        >
+          {command.display_name}
+        </MenuItem>
+      })
+    }
+  </ControlledMenu >
+});
 
