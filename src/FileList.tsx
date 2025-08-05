@@ -443,6 +443,7 @@ export const FileList = forwardRef<FileListFunc, FileListProps>((props, ref) => 
                     width: colWidths[columnIndex],
                     padding: "0 6px",
                     overflow: "hidden",
+                    whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
                   }}
                 >
