@@ -9,6 +9,7 @@ import { Box } from "@mui/material";
 
 import { IoIosArrowDropright, IoIosArrowDropdown } from "react-icons/io";
 import { TextInputStyle, useTheme } from "./ThemeStyle";
+import { playSound } from "./playSound";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 export interface LogMessagePeinFunc {
@@ -166,6 +167,9 @@ export const LogMessagePein = forwardRef<LogMessagePeinFunc, LogMessagePeinProps
       unlisten = await listen('LogMessageEvent', event => {
         const logInfo = event.payload as LogInfo;
         addMessage(logInfo);
+        if (logInfo.rc != null) {
+          playSound();
+        }
       });
     })()
     return () => {
