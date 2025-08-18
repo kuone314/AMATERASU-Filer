@@ -164,7 +164,8 @@ export const LogMessagePein = forwardRef<LogMessagePeinFunc, LogMessagePeinProps
     let unlisten: UnlistenFn | null;
     (async () => {
       unlisten = await listen('LogMessageEvent', event => {
-        addMessage(event.payload as LogInfo);
+        const logInfo = event.payload as LogInfo;
+        addMessage(logInfo);
       });
     })()
     return () => {
